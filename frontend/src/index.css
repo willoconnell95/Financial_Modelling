@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 font-sans;
+  }
+
+  * {
+    @apply box-border;
+  }
+}
+
+@layer components {
+  /* Scrollbar styling */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-slate-100;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-slate-400 rounded;
+  }
+
+  /* Table cells */
+  .financial-cell {
+    @apply px-3 py-2 text-right text-sm tabular-nums;
+  }
+  .financial-cell-label {
+    @apply px-3 py-2 text-left text-sm font-medium;
+  }
+  .financial-cell-forecast {
+    @apply text-blue-600;
+  }
+  .financial-section-header {
+    @apply bg-slate-800 text-white text-xs font-semibold uppercase tracking-wider px-3 py-2;
+  }
+}
+
+/* Animate spinner */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
