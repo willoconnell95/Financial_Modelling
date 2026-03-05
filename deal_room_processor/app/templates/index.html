@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deal Room Processor — Athletic VC</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #1a365d;
+      --blue:   #2b6cb0;
+      --sky:    #ebf4ff;
+      --accent: #3182ce;
+      --green:  #276749;
+      --red:    #9b2335;
+      --red-bg: #fff5f5;
+      --border: #cbd5e0;
+      --text:   #1a202c;
+      --muted:  #718096;
+      --white:  #ffffff;
+      --bg:     #f7fafc;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    header {
+      background: var(--navy);
+      color: var(--white);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    header .logo {
+      width: 38px; height: 38px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 800; color: var(--white);
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 20px; font-weight: 700; }
+    header p  { font-size: 13px; opacity: 0.7; margin-top: 1px; }
+
+    /* ── Main layout ─────────────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      max-width: 760px;
+      width: 100%;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    /* ── Error banner ────────────────────────────────────────────────────── */
+    .alert-error {
+      background: var(--red-bg);
+      border: 1px solid #feb2b2;
+      border-left: 4px solid var(--red);
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      color: #742a2a;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .alert-error strong { display: block; margin-bottom: 4px; }
+
+    /* ── Card ────────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .card-header {
+      background: var(--sky);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-body { padding: 20px; }
+
+    /* ── Drop zone ───────────────────────────────────────────────────────── */
+    #drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    #drop-zone:hover,
+    #drop-zone.dragover {
+      border-color: var(--accent);
+      background: var(--sky);
+    }
+    #drop-zone .icon {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 12px;
+      line-height: 1;
+    }
+    #drop-zone h2 { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+    #drop-zone p  { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    #drop-zone .browse-btn {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 8px 20px;
+      background: var(--accent);
+      color: var(--white);
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    #drop-zone .browse-btn:hover { background: var(--blue); }
+    #file-input { display: none; }
+
+    /* ── File list ───────────────────────────────────────────────────────── */
+    #file-list { list-style: none; margin-top: 16px; }
+    #file-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      background: var(--white);
+      transition: background .15s;
+    }
+    #file-list li:hover { background: var(--sky); }
+    #file-list li .file-icon { font-size: 18px; flex-shrink: 0; }
+    #file-list li .file-name { flex: 1; font-weight: 500; word-break: break-all; }
+    #file-list li .file-size { color: var(--muted); white-space: nowrap; }
+    #file-list li .remove-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: color .15s, background .15s;
+    }
+    #file-list li .remove-btn:hover { color: var(--red); background: var(--red-bg); }
+
+    #file-count {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    /* ── Supported formats ───────────────────────────────────────────────── */
+    .formats {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+    .formats span {
+      display: inline-block;
+      background: #edf2f7;
+      color: var(--text);
+      border-radius: 3px;
+      padding: 1px 5px;
+      margin: 2px;
+      font-weight: 500;
+    }
+
+    /* ── Submit ──────────────────────────────────────────────────────────── */
+    .submit-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    #submit-btn {
+      padding: 12px 32px;
+      background: var(--navy);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s, opacity .15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #submit-btn:hover:not(:disabled) { background: var(--blue); }
+    #submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    #submit-hint { font-size: 13px; color: var(--muted); }
+
+    /* ── Loading overlay ─────────────────────────────────────────────────── */
+    #loading-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.9);
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+    #loading-overlay.active { display: flex; }
+    .spinner {
+      width: 52px; height: 52px;
+      border: 5px solid #e2e8f0;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading-overlay h3 { font-size: 18px; font-weight: 600; color: var(--navy); }
+    #loading-overlay p  { font-size: 14px; color: var(--muted); }
+
+    /* ── How it works ────────────────────────────────────────────────────── */
+    .steps { display: flex; gap: 12px; flex-wrap: wrap; }
+    .step {
+      flex: 1; min-width: 140px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+    .step .step-num {
+      width: 28px; height: 28px;
+      background: var(--navy);
+      color: var(--white);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .step h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .step p  { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">A</div>
+  <div>
+    <h1>Deal Room Processor</h1>
+    <p>Athletic VC &mdash; Upload deal documents and receive an AI-generated summary by email</p>
+  </div>
+</header>
+
+<main>
+
+  {% if error %}
+  <div class="alert-error">
+    <strong>Error</strong>
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <!-- Upload card -->
+  <div class="card">
+    <div class="card-header">
+      &#128196; Upload Documents
+    </div>
+    <div class="card-body">
+      <form id="upload-form" method="POST" action="/process" enctype="multipart/form-data">
+        <div id="drop-zone">
+          <span class="icon">&#128193;</span>
+          <h2>Drag &amp; drop files here</h2>
+          <p>or click to browse your computer<br>
+             Up to {{ max_files }} files per submission</p>
+          <button type="button" class="browse-btn" onclick="document.getElementById('file-input').click()">
+            Browse Files
+          </button>
+          <input type="file" id="file-input" name="documents" multiple
+                 accept="{{ supported_extensions | join(',') }}">
+        </div>
+
+        <div class="formats">
+          Supported formats:
+          {% for ext in supported_extensions %}
+          <span>{{ ext }}</span>
+          {% endfor %}
+        </div>
+
+        <div id="file-count" style="margin-top:12px; display:none;"></div>
+        <ul id="file-list"></ul>
+
+        <div class="submit-row" style="margin-top: 20px;">
+          <button type="submit" id="submit-btn" disabled>
+            <span>&#9889;</span> Process &amp; Send Summary
+          </button>
+          <span id="submit-hint">Add at least one document to begin</span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- How it works card -->
+  <div class="card">
+    <div class="card-header">&#128161; How it works</div>
+    <div class="card-body">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h4>Upload</h4>
+          <p>Drop pitch decks, financials, and data room files</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h4>Extract</h4>
+          <p>Text is pulled from every document automatically</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h4>Summarize</h4>
+          <p>Claude AI generates a structured 15-field deal memo</p>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <h4>Email</h4>
+          <p>The formatted summary is sent to will@athletic.vc</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <h3>Processing documents&hellip;</h3>
+  <p>Extracting text &rarr; Generating AI summary &rarr; Sending email<br>
+     This may take 20–60 seconds depending on document size.</p>
+</div>
+
+<footer>
+  Deal Room Processor &bull; Athletic VC &bull; Powered by Claude 3.5 Sonnet
+</footer>
+
+<script>
+  const dropZone   = document.getElementById('drop-zone');
+  const fileInput  = document.getElementById('file-input');
+  const fileList   = document.getElementById('file-list');
+  const fileCount  = document.getElementById('file-count');
+  const submitBtn  = document.getElementById('submit-btn');
+  const submitHint = document.getElementById('submit-hint');
+  const form       = document.getElementById('upload-form');
+  const overlay    = document.getElementById('loading-overlay');
+  const MAX_FILES  = {{ max_files }};
+
+  let selectedFiles = [];
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function fileIcon(name) {
+    const ext = name.split('.').pop().toLowerCase();
+    const icons = { pdf: '📄', docx: '📝', doc: '📝', xlsx: '📊', xls: '📊',
+                    txt: '📃', csv: '📋', md: '📃', pptx: '📑' };
+    return icons[ext] || '📄';
+  }
+
+  function updateUI() {
+    fileList.innerHTML = '';
+    if (selectedFiles.length === 0) {
+      fileCount.style.display = 'none';
+      submitBtn.disabled = true;
+      submitHint.textContent = 'Add at least one document to begin';
+      return;
+    }
+
+    fileCount.style.display = 'block';
+    fileCount.textContent = `${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''} selected`;
+
+    selectedFiles.forEach((file, idx) => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span class="file-icon">${fileIcon(file.name)}</span>
+        <span class="file-name">${file.name}</span>
+        <span class="file-size">${formatBytes(file.size)}</span>
+        <button type="button" class="remove-btn" title="Remove" data-idx="${idx}">&times;</button>
+      `;
+      fileList.appendChild(li);
+    });
+
+    fileList.querySelectorAll('.remove-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedFiles.splice(parseInt(btn.dataset.idx), 1);
+        syncInputFiles();
+        updateUI();
+      });
+    });
+
+    if (selectedFiles.length > MAX_FILES) {
+      submitBtn.disabled = true;
+      submitHint.textContent = `Too many files — maximum is ${MAX_FILES}`;
+    } else {
+      submitBtn.disabled = false;
+      submitHint.textContent = `Ready to process ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`;
+    }
+  }
+
+  function syncInputFiles() {
+    // Rebuild a DataTransfer so the native input reflects selectedFiles
+    const dt = new DataTransfer();
+    selectedFiles.forEach(f => dt.items.add(f));
+    fileInput.files = dt.files;
+  }
+
+  function addFiles(newFiles) {
+    const combined = [...selectedFiles, ...newFiles];
+    // Deduplicate by name+size
+    const seen = new Set(selectedFiles.map(f => f.name + f.size));
+    newFiles.forEach(f => {
+      if (!seen.has(f.name + f.size)) { selectedFiles.push(f); seen.add(f.name + f.size); }
+    });
+    syncInputFiles();
+    updateUI();
+  }
+
+  // Input change
+  fileInput.addEventListener('change', () => {
+    addFiles(Array.from(fileInput.files));
+  });
+
+  // Drag & drop
+  ['dragenter', 'dragover'].forEach(evt => {
+    dropZone.addEventListener(evt, e => {
+      e.preventDefault(); e.stopPropagation();
+      dropZone.classList.add('dragover');
+    });
+  });
+  ['dragleave', 'drop'].forEach(evt => {
+    dropZone.addEventListener(evt, e => {
+      e.preventDefault(); e.stopPropagation();
+      dropZone.classList.remove('dragover');
+    });
+  });
+  dropZone.addEventListener('drop', e => {
+    const files = Array.from(e.dataTransfer.files);
+    addFiles(files);
+  });
+
+  // Show loading overlay on submit
+  form.addEventListener('submit', e => {
+    if (selectedFiles.length === 0) { e.preventDefault(); return; }
+    overlay.classList.add('active');
+    submitBtn.disabled = true;
+  });
+</script>
+</body>
+</html>
